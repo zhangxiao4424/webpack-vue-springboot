@@ -35,9 +35,11 @@ module.exports = {
             // 这不会被转为base64格式的字符串，如果图片小于给定的limit值，则会被转为base64的字符串
             { test: /\.(ttf|eot|svg|woff|woff2)$/, use: "url-loader" }, //处理字体
             { test: /\.js$/, use: 'babel-loader', exclude: /node_modules/ }, //配置Babel来转换高级的ES语法
-            { test: /\.vue$/, use: 'vue-loader'} 
+            { test: /\.vue$/, use: 'vue-loader'},
+            { test: /mxClient\.js$/, use: 'exports-loader?mxClient,mxGraphModel,mxActor,mxShape,mxEventObject,mxGraph,mxPrintPreview,mxEventSource,mxRectangle,mxVertexHandler,mxMouseEvent,mxGraphView,mxImage,mxGeometry,mxRubberband,mxKeyHandler,mxDragSource,mxGraphModel,mxEvent,mxUtils,mxWindow,mxEvent,mxCodec,mxCell,mxConstants,mxPoint,mxGraphHandler,mxCylinder,mxCellRenderer,mxEvent,mxUndoManager'}
         ]
     },
+    // , loader: 'exports-loader?mxClient,mxGraphModel,mxActor,mxShape,mxEventObject,mxGraph,mxPrintPreview,mxEventSource,mxRectangle,mxVertexHandler,mxMouseEvent,mxGraphView,mxImage,mxGeometry,mxRubberband,mxKeyHandler,mxDragSource,mxGraphModel,mxEvent,mxUtils,mxWindow,mxEvent,mxCodec,mxCell,mxConstants,mxPoint,mxGraphHandler,mxCylinder,mxCellRenderer,mxEvent,mxUndoManager'
     resolve: {
         alias: {
             // " vue$": "vue/dist/vue.js" // 修改Vue被导入时候的包的路径

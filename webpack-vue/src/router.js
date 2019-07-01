@@ -6,6 +6,7 @@ import goodsList from './main/goodsList.vue'
 import login1 from './subcom/login.vue'
 import register from './subcom/register.vue'
 import login from './main/login.vue'
+import mxgraph from './main/mxgraph.vue'
 
 var router = new VueRouter({
     routes: [
@@ -25,6 +26,10 @@ var router = new VueRouter({
         {
             path: '/login', 
             component: login
+        },
+        {
+            path: '/mxgraph',
+            component: mxgraph
         }
     ]
 })

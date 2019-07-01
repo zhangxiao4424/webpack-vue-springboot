@@ -171,6 +171,59 @@
 	</div>
 </template>
 <script>
+class DataSource{
+    constructor() {
+        let i = 0;
+        this._id = setInterval(() => {this.emit(i++), 20000});
+        console.log(this._id);
+    }
+
+    emit(n) {
+        const limit = 10;
+        if (this.ondata) {
+            this.ondata(n);
+        }
+        if (n === limit) {
+            if (this.oncomplete) {
+                this.oncomplete();
+            }
+            this.destroy();
+        }
+    }
+
+    destroy() {
+        clearInterval(this._id);
+    }
+}
+class SafeObserver {
+    constructor(destination) {
+        this.destination = destination;
+    }
+
+    next(value) {
+        // 尚未取消订阅，且包含next方法
+        if( !this.isUnsubscribed && this.destination.next) {
+            try {
+                this.destination.next(value);
+            } catch(err) {
+                // 出现异常，取消订阅释放支援，再抛出异常
+                this.unsubscribed();
+                throw err;
+            }
+        }
+    }
+
+    error(err) {
+        // 尚未取消订阅，且包含error方法
+        if ( !this.isUnsubscribed && this.destination.error) {
+            try {
+                this.destination.error(err);
+            } catch (err2) {
+
+            }
+        }
+    }
+}
 export default {
     data() {
         return {
@@ -179,8 +232,23 @@ export default {
     },
     mounted() {
         this.getList();
+        // this.myObservable();
+        const unsub = this.myObservable({
+            next(x) {console.log(x)},
+            error(err) {console.log(err)},
+            complete() {console.log("done")}
+        });
     },
     methods: {
+        myObservable(observer) {
+            let datasource = new DataSource(); // 创建数据源
+            datasource.ondata = (e) => observer.next(e); // 处理数据流
+            datasource.onerror = (err) => observer.error(e); // 处理异常
+            datasource.oncomplete = () => observer.complete(); // 处理数据终止
+            return () => {
+                datasource.destroy();
+            }
+        },
         getList() {
             this.$http({
                 method: 'GET',

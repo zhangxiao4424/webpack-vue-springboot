@@ -4,10 +4,14 @@
     </div>
 </template>
 <script>
-export default {
-    
-}
+    class DataSource{
+        constructor() {
+            console.log(111);
+            let i = 0;
+            this._id = setInterval(() => {this.emit(i++), 200});
+        }
+    }
 </script>
 <style lang="scss">
-
+    
 </style>

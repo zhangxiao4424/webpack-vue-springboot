@@ -63,6 +63,31 @@ export default {
             this.getItemById();
         }
         this.getDepartment();
+        let ht = require("ht");
+        console.log(ht.DataModel);
+        // 创建数据模型容器  
+        var dataModel = new ht.DataModel();  
+        
+        // 创建拓扑图组件  
+        var graphView = new ht.graph.GraphView(dataModel);  
+        
+        // 创建一个起始节点，设置名字和位置属性，添加到数据模型容器  
+        var source = new ht.Node();  
+        source.setName('source');  
+        source.setPosition(100, 70);                  
+        dataModel.add(source);  
+        
+        // 创建一个结束节点，设置名字和位置属性，添加到数据模型容器  
+        var target = new ht.Node();  
+        target.setName('target');    
+        target.setPosition(260, 70);  
+        dataModel.add(target);  
+        
+        // 创建一条连线，设置起始和结束节点，添加到数据模型容器             
+        var edge = new ht.Edge();  
+        edge.setSource(source);  
+        edge.setTarget(target);  
+        dataModel.add(edge); 
     },
     methods: {
         enter() {
