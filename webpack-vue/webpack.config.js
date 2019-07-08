@@ -7,6 +7,7 @@ const VueLoaderPlugin = require('vue-loader/lib/plugin')
 
 // 这个配置文件 就是一个js文件通过node中的模块操作，向外暴露了一个配置对象
 module.exports = {
+    
     entry: path.join(__dirname, './src/main.js'), // 入口 表示要使用webpack打包那个文件
     output: { //输出文件相关的配置
         path: path.join(__dirname, './dist'), // 指定 打包好的文件，输出到哪个目录中去
@@ -41,6 +42,7 @@ module.exports = {
     },
     // , loader: 'exports-loader?mxClient,mxGraphModel,mxActor,mxShape,mxEventObject,mxGraph,mxPrintPreview,mxEventSource,mxRectangle,mxVertexHandler,mxMouseEvent,mxGraphView,mxImage,mxGeometry,mxRubberband,mxKeyHandler,mxDragSource,mxGraphModel,mxEvent,mxUtils,mxWindow,mxEvent,mxCodec,mxCell,mxConstants,mxPoint,mxGraphHandler,mxCylinder,mxCellRenderer,mxEvent,mxUndoManager'
     resolve: {
+        extensions: ['.js', '.vue', '.json'],
         alias: {
             // " vue$": "vue/dist/vue.js" // 修改Vue被导入时候的包的路径
         }

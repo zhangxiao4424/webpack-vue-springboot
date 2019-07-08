@@ -217,7 +217,8 @@ class SafeObserver {
         // 尚未取消订阅，且包含error方法
         if ( !this.isUnsubscribed && this.destination.error) {
             try {
-                this.destination.error(err);
+                this.destination.error(err
+                );
             } catch (err2) {
 
             }

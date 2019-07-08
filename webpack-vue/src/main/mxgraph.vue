@@ -20,7 +20,20 @@
                 </ul>
             </div>
             <div class="iscanvas" ref="graph_container"></div>
-            <div class="left"></div>
+            <div class="left">
+                <lineStyle v-if="this.selectEdgeStyle" 
+                    :selectEdgeStyle = selectEdgeStyle
+                    :handleStyleChange = handleStyleChange>
+                </lineStyle>
+                <div v-if="this.selectSwitch">
+                    <select>
+                        <option value ="volvo">Volvo</option>
+                        <option value ="saab">Saab</option>
+                        <option value="opel">Opel</option>
+                        <option value="audi">Audi</option>
+                    </select>
+                </div>
+            </div>
         </div>
         <div class="outline-wrapper">
             <h4>导航器</h4>
@@ -30,6 +43,7 @@
 </template>
 <script>
 import mxgraph from '../graph/index';
+import lineStyle from '../components/lineStyle'
 
 const {
   mxGraph,
@@ -47,7 +61,8 @@ const {
   mxCellState,
   mxGraphHandler,
   mxConstants,
-  mxEdgeStyle
+  mxEdgeStyle,
+  mxPerimeter 
 } = mxgraph;
 
 export default {
@@ -56,8 +71,15 @@ export default {
     props: {
         msg: String
     },
+    components: {
+        lineStyle
+    },
     data() {
         return {
+            selectSwitch: false,
+            isOpen: true,
+            pipeline: [],
+            selectEdge: {},
             items: [
                 {
                     id: 1,
@@ -82,27 +104,75 @@ export default {
                 {
                     id: 6,
                     icon: 'triangle.gif'
+                },
+                {
+                    id: 7,
+                    icon: 'valve.gif'
                 }
             ]
         }
     },
     mounted() {
         this.initMxGraph();
+        this.addListener();
         this.makeDraggable(document.getElementsByClassName('element-img'));
         this.cerateTank();
+        this.canDrop();
     },
     methods: {
         makeDraggable(sourceEles) {
+            const createPopupMenu = (graph, menu, cell, evt) => {
+                if (cell != null) {
+                    let state = menu.graph.view.getState(cell);
+                    let isClose = state.shape.node.getElementsByTagName('image')[0].getAttribute('isOpen') === 'true' ? true : false;
+                    menu.addItem(isClose? 'open': 'close', '', () => {
+                        // mxUtils.alert('MenuItem1');
+                        // dom.setAttribute('src', '');
+                        state.shape.node.getElementsByTagName('image')[0].setAttribute('href', `/static/images/${isClose? 'valve_open': 'valve_close'}.svg`);
+                        state.shape.node.getElementsByTagName('image')[0].setAttribute('isOpen', isClose? 'false' :'true');
+                    });
+                }
+                menu.addSeparator();
+            };
+            const createValve = (dom, x, y) => {
+                let doc = mxUtils.createXmlDocument();
+                let valve = doc.createElement('valve');
+                // let style = this.graph.getStylesheet().getDefaultVertexStyle();
+                // console.log(mxConstants.DIALECT_SVG);
+                
+                // style[mxConstants.DIALECT_SVG] = `/static/images/valve.svg`;
+                let style = new Object();
+                style[mxConstants.STYLE_SHAPE] = mxConstants.SHAPE_IMAGE;
+                style[mxConstants.STYLE_PERIMETER] = mxPerimeter.RectanglePerimeter;
+                style[mxConstants.STYLE_IMAGE] = '/static/images/valve_open.svg';
+                style[mxConstants.STYLE_FONTCOLOR] = '#FFFFFF';
+                this.graph.getStylesheet().putCellStyle('image', style);
+                this.graph.popupMenuHandler.factoryMethod = (menu, cell, evt) => {
+                    // console.log(cell);
+                    if (cell && cell.style === 'image') {
+                        // console.log(cell.id);
+                        return createPopupMenu(this.graph, menu, cell, evt, dom);
+                    }
+				};
+                this.graph.getModel().beginUpdate();
+                try{
+					let v1 = this.graph.insertVertex(this.graph.getDefaultParent(), null, '', x, y, 30, 30, 'image');
+				}
+				finally{
+					// Updates the display
+					this.graph.getModel().endUpdate();
+				}
+            };
             const initConnection = (_graph) => {
                 _graph.setConnectable(true);
-                if (_graph.connectionHandler.connectImage == null) {
-					_graph.connectionHandler.isConnectableCell = function(cell) {
-					   return false;
-					};
-					mxEdgeHandler.prototype.isConnectableCell = function(cell) {
-						return _graph.connectionHandler.isConnectableCell(cell);
-					};
-				}
+                // if (_graph.connectionHandler.connectImage == null) {
+				// 	_graph.connectionHandler.isConnectableCell = function(cell) {
+				// 	   return false;
+				// 	};
+				// 	mxEdgeHandler.prototype.isConnectableCell = function(cell) {
+				// 		return _graph.connectionHandler.isConnectableCell(cell);
+				// 	};
+				// }
                 // _graph.getAllConnectionConstraints = function(terminal) {
 				// 	if (terminal != null && this.model.isVertex(terminal.cell)) {
 				// 		return [new mxConnectionConstraint(new mxPoint(0, 0), true),
@@ -140,19 +210,20 @@ export default {
             };
             // drop成功后新建一个节点
             const dropSuccessCb = function (_graph, evt, target, x, y) {
-                let nodeRootVertex = new mxCell('鼠标双击输入', new mxGeometry(0, 0, 100, 50), 'shape=ellipse;perimeter=ellipsePerimeter');
-                nodeRootVertex.vertex = true;
-                nodeRootVertex.geometry.x = x;
-                nodeRootVertex.geometry.y = y;
-                console.log(_graph.getModel().cloneCell(nodeRootVertex));
-                initConnection(_graph);
-                _graph.addCell(nodeRootVertex);
-                _graph.setSelectionCell(nodeRootVertex);
-                
-                // const cells = _graph.importCells([nodeRootVertex], x, y, target);
-                // if (cells != null && cells.length > 0) {
-                //     _graph.setSelectionCells(cells);
-                // }
+                let type = this.element.getAttribute('src').split('/')[this.element.getAttribute('src').split('/').length - 1].split('.')[0];
+                let nodeRootVertex;
+                if (type === 'valve') {
+                    createValve(this.element, x, y);
+                    // nodeRootVertex = new mxCell('鼠标双击输入', new mxGeometry(0, 0, 50, 50), `node;image=${this.element.getAttribute('src')}`);
+                } else {
+                    nodeRootVertex = new mxCell('鼠标双击输入', new mxGeometry(0, 0, 50, 50), `shape=${type};perimeter=ellipsePerimeter;`);
+                     nodeRootVertex.vertex = true;
+                    nodeRootVertex.geometry.x = x;
+                    nodeRootVertex.geometry.y = y;
+                    initConnection(_graph);
+                    _graph.addCell(nodeRootVertex);
+                    _graph.setSelectionCell(nodeRootVertex);
+                }
             }; 
 
             Array.from(sourceEles).forEach((ele) => {
@@ -167,9 +238,9 @@ export default {
         cerateTank() {
             this.graph.setHtmlLabels(true);
 
-            this.graph.isCellEditable = () => {
-                return this.model.isEdge(cell);
-            };
+            // this.graph.isCellEditable = () => {
+            //     return this.model.isEdge(cell);
+            // };
             var parent = this.graph.getDefaultParent();
             var vertexStyle = 'shape=cylinder;strokeWidth=2;fillColor=#ffffff;strokeColor=#000000;' +
                     'gradientColor=#a0a0a0;fontColor=black;fontStyle=1;spacingTop=14;';
@@ -178,10 +249,12 @@ export default {
                 state.shape.node.getElementsByTagName('path')[0].removeAttribute('visibility');
                 state.shape.node.getElementsByTagName('path')[0].setAttribute('stroke-width', '6');
                 state.shape.node.getElementsByTagName('path')[0].setAttribute('stroke', 'lightGray');
-                state.shape.node.getElementsByTagName('path')[1].setAttribute('class', 'flow');
+                state.shape.node.getElementsByTagName('path')[1].classList.add('flow');
+                state.shape.node.getElementsByTagName('path')[1].classList.add('animation');
             };
             // Adds cells to the model in a single step
             this.graph.getModel().beginUpdate();
+            let v1, v2, v3;
             try {
                 // let v1 = this.graph.insertVertex(parent, null, 'Hello,', 20, 20, 80, 30);
                 // let v2 = this.graph.insertVertex(parent, null, 'World!', 200, 150, 80, 30);
@@ -195,19 +268,23 @@ export default {
                 // e1.geometry.width = 100;
                 // this.graph.insertEdge(parent, null, '', v1, v2);
                 // this.graph.insertEdge(parent, null, '', v1, v3);
-                let v1 = this.graph.insertVertex(parent, null, 'Pump', 300, 300, 60, 60, vertexStyle);
-                let v2 = this.graph.insertVertex(parent, null, 'tank1', 200, 150, 60, 60, vertexStyle);
-                let v3 = this.graph.insertVertex(parent, null, 'tank2', 400, 150, 60, 60, vertexStyle);
+                v1 = this.graph.insertVertex(parent, null, 'Pump', 300, 300, 60, 60, vertexStyle);
+                v2 = this.graph.insertVertex(parent, null, 'tank1', 200, 150, 60, 60, vertexStyle);
+                v3 = this.graph.insertVertex(parent, null, 'tank2', 400, 150, 60, 60, vertexStyle);
 
-                var e1 = this.graph.insertEdge(parent, null, '',  v1, v2, 'strokeWidth=3;endArrow=none;endSize=2;endFill=1;strokeColor=red;rounded=1;');
+                var e1 = this.graph.insertEdge(parent, null, '',  v1, v2, 'strokeWidth=3;endArrow=none;endSize=2;endFill=1;strokeColor=red;rounded=1;isline');
                 e1.geometry.points = [new mxPoint(100, 330), new mxPoint(100, 50), new mxPoint(230, 50)];
-                var e2 = this.graph.insertEdge(parent, null, '',  v1, v3, 'strokeWidth=3;endArrow=none;endSize=2;endFill=1;strokeColor=blue;rounded=1;');
+                var e2 = this.graph.insertEdge(parent, null, '',  v1, v3, 'strokeWidth=3;endArrow=none;endSize=2;endFill=1;strokeColor=blue;rounded=1;isline');
                 e2.geometry.points = [new mxPoint(520, 330), new mxPoint(520, 50), new mxPoint(430, 50)];
                 // this.graph.orderCells(true, [e]);
             } finally {
                 // Updates the display
                 this.graph.getModel().endUpdate();
             }
+
+            window.setInterval(() => {
+                this.graph.setCellWarning(v2, 'Tooltip');
+            }, 5000);
 
             animationStart(e1);
             animationStart(e2);
@@ -218,6 +295,58 @@ export default {
             this.graph.view.addListener(mxEvent.SCALEANDTRANSLATE, function(sender, evt){
                 animationStart(e1);
                 animationStart(e2);
+            });
+        },
+        handleStyleChange(key, value) {
+            let state = this.graph.view.getState(this.selectEdge); 
+            let styleDict = {};
+            // console.log(this.selectEdge.getState());
+            if (this.selectEdge.getStyle()) {
+                this.selectEdge.getStyle().split(';').filter(item => item).forEach((item) => {
+                    let [key, value] = item.split('=');
+                    styleDict[key] = value;
+                });
+            }
+            styleDict[key] = value;
+            // if (styleDict['switch']) 
+            let style = Object.entries(styleDict).map(([key, value]) => `${key}=${value}`).join(';').replace(/=undefined/g, '');
+            this.graph.model.setStyle(this.selectEdge, style);
+            if (key === 'switch') {
+                state.shape.node.getElementsByTagName('path')[1].setAttribute('style', 'animation:none');
+                // state.shape.node.getElementsByTagName('path')[1].classList.remove('animation');
+            }        
+        },
+        handleSelectionChange(selectModel) {
+            // this.selectVertex = {};
+            this.selectEdge = {};
+            this.selectSwitch = false;
+            if (!selectModel.cells.length) {
+                return;
+            }
+            
+            let cell = selectModel.cells[0];
+            if (!cell.vertex) {
+                this.selectEdge = cell;
+            } else {
+                if (cell.style === 'image') {
+                    this.selectSwitch = cell;
+                    let cells = this.graph.model.cells;
+                    console.log(cells);
+                    for(let item in this.graph.model.cells) {
+                        if (!cells[item].vertex) {  
+                            let style = cells[item].style;
+                            console.log(style);
+                        }
+                    }
+                }
+            }
+        },
+        canDrop() {
+            mxEvent.addListener(this.$refs.graph_container, 'dragover', function(evt){
+                if (this.graph.isEnabled()){
+                    evt.stopPropagation();
+                    evt.preventDefault();
+                }
             });
         },
         initMxGraph() {
@@ -234,9 +363,11 @@ export default {
             mxConstants.GUIDE_STROKEWIDTH = 5;
             mxEdgeHandler.prototype.snapToTerminals = true;
             // Creates the graph inside the given container
+            mxEvent.disableContextMenu(this.$refs.graph_container);
             this.graph = new mxGraph(this.$refs.graph_container);
+            this.graph.setConnectable(true);
+            this.graph.gridSize = 30;
             var outline = new mxOutline(this.graph, document.getElementById('graphOutline'));
-            new mxRubberband(this.graph);
             // Changes the default style for edges "in-place" and assigns
             // an alternate edge style which is applied in mxGraph.flip
             // when the user double clicks on the adjustment control point
@@ -246,6 +377,20 @@ export default {
             style[mxConstants.STYLE_ROUNDED] = true;
             style[mxConstants.STYLE_EDGE] = mxEdgeStyle.ElbowConnector;
             this.graph.alternateEdgeStyle = 'elbow=vertical';
+
+            new mxRubberband(this.graph);
+        },
+        addListener() {
+            const mxGraphSelectionModel = this.graph.getSelectionModel();
+            mxGraphSelectionModel.addListener(mxEvent.CHANGE, this.handleSelectionChange);
+        }
+    },
+    computed: {
+        selectEdgeStyle() {
+            if ( Object.keys(this.selectEdge).length > 0 ) {
+                return this.graph.getCellStyle(this.selectEdge);
+            }
+            return false;
         }
     }
 }
@@ -254,12 +399,16 @@ export default {
     #mxgraph1 {
         .flow {
             stroke-dasharray: 8;
+            // animation: dash 0.1s linear;
+            // animation-iteration-count: infinite;
+        }
+        .animation{
             animation: dash 0.1s linear;
             animation-iteration-count: infinite;
         }
         @keyframes dash {
             to {
-                stroke-dashoffset: -16;
+                stroke-dashoffset: -26;
             }
         }
         .top {
